@@ -1,0 +1,264 @@
+
+                                      TEMP.CODE
+
+
+
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+#include "lm35.h" //  DHT.h library
+//#include <ESP8266WiFi.h> // ESP8266WiFi.h library
+
+float val,val1;
+
+const char* ssid = "@";
+const char* password = "0bcd1111";
+const char* host = "api.thingspeak.com";
+const char* writeAPIKey = "KMBQIXLE3G9V1SL2";
+const char* host1 = "maker.ifttt.com";
+const int httpsPort = 443;
+
+ 
+ const int buzzer1 =  13; 
+ String url1 = "https://maker.ifttt.com/trigger/Tempreature/with/key/hnx2R8SeeOK9AEsSSypLpa0f-jKfl4Eo1yO9yNPIUEN";
+
+ 
+void setup() {
+  
+   pinMode(buzzer1, OUTPUT);
+  Serial.begin(115200);
+  Serial.println();
+  Serial.print("connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  
+ 
+
+ 
+  Serial.println(url1);
+
+}
+
+void loop() {
+
+
+
+  
+ val = analogRead(A0);
+float mv = ( val/1024.0)*3200; 
+float val1 = mv/10;
+float farh = (val1*9)/5 + 32;
+//float val2=val*0.48828125;
+ //float farh = (val1*9)/5 + 32;
+//float cal=(val1-32)*5/9;
+ Serial.print("temprature:");
+ Serial.print(val1);
+ //Serial.print(val);
+ Serial.print("*c");
+  Serial.print("\n");
+
+// make TCP connections
+  WiFiClient client;
+  const int httpPort = 80;
+  //const int httpPort1 = 443;
+  if (!client.connect(host, httpPort)) {
+    return;
+  }
+  
+
+  String url = "/update?key=";
+  url+=writeAPIKey;
+  url+="&field1=";
+  url+=String(val1);
+ url+="&field2=";
+url+=String(farh);
+  url+="\r\n";
+  
+  // Request to the server
+  
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" );
+    delay(1000);
+ 
+
+
+
+              
+
+
+
+
+
+
+if(val1>=34)
+  {
+  
+   digitalWrite(buzzer1,LOW);
+   WiFiClientSecure client;
+   Serial.print("connecting to ");
+   Serial.println(host1);
+   if (!client.connect(host1, httpsPort)) {
+   Serial.println("connection failed");
+   return;
+  }
+  
+  client.print(String("GET ") + url1 + " HTTP/1.1\r\n" +
+               "Host: " + host1 + "\r\n" +
+               "User-Agent: BuildFailureDetectorESP8266\r\n" +
+               "Connection: close\r\n\r\n");
+
+  Serial.println("request sent");
+  while (client.connected()) 
+  {
+    String line = client.readStringUntil('\n');
+    if (line == "\r") 
+     {
+      Serial.println("headers received");
+      break;
+     }
+  }
+  String line = client.readStringUntil('\n');
+
+  Serial.println("reply was:");
+  Serial.println("==========");
+  Serial.println(line);
+  Serial.println("==========");
+  Serial.println("closing connection");
+}
+else
+{
+  digitalWrite(buzzer1,HIGH);
+}
+}
+
+
+
+
+
+                      WIFI CODE
+
+
+
+
+
+#ifndef WiFi_h
+#define WiFi_h
+
+#include <stdint.h>
+
+extern "C" {
+#include "include/wl_definitions.h"
+}
+
+#include "IPAddress.h"
+
+#include "ESP8266WiFiType.h"
+#include "ESP8266WiFiSTA.h"
+#include "ESP8266WiFiAP.h"
+#include "ESP8266WiFiScan.h"
+#include "ESP8266WiFiGeneric.h"
+
+#include "WiFiClient.h"
+#include "WiFiServer.h"
+#include "WiFiServerSecure.h"
+#include "WiFiClientSecure.h"
+
+#ifdef DEBUG_ESP_WIFI
+#ifdef DEBUG_ESP_PORT
+#define DEBUG_WIFI(...) DEBUG_ESP_PORT.printf( __VA_ARGS__ )
+#endif
+#endif
+
+#ifndef DEBUG_WIFI
+#define DEBUG_WIFI(...)
+#endif
+
+
+class ESP8266WiFiClass : public ESP8266WiFiGenericClass, public ESP8266WiFiSTAClass, public ESP8266WiFiScanClass, public ESP8266WiFiAPClass {
+    public:
+
+        // workaround same function name with different signature
+        using ESP8266WiFiGenericClass::channel;
+
+        using ESP8266WiFiSTAClass::SSID;
+        using ESP8266WiFiSTAClass::RSSI;
+        using ESP8266WiFiSTAClass::BSSID;
+        using ESP8266WiFiSTAClass::BSSIDstr;
+
+        using ESP8266WiFiScanClass::SSID;
+        using ESP8266WiFiScanClass::encryptionType;
+        using ESP8266WiFiScanClass::RSSI;
+        using ESP8266WiFiScanClass::BSSID;
+        using ESP8266WiFiScanClass::BSSIDstr;
+        using ESP8266WiFiScanClass::channel;
+        using ESP8266WiFiScanClass::isHidden;
+
+        // ----------------------------------------------------------------------------------------------
+        // ------------------------------------------- Debug --------------------------------------------
+        // ----------------------------------------------------------------------------------------------
+
+    public:
+
+        void printDiag(Print& dest);
+
+        friend class WiFiClient;
+        friend class WiFiServer;
+
+};
+
+extern ESP8266WiFiClass WiFi;
+
+#endif
+                                          
+
+
+
+
+
+
+
+                                        LM35
+
+
+
+/*
+  lm35.h - LM35 Analog Linear Temperature Sensor Library
+  Version 1.1
+  2013 Copyright (c) Riyadh Al Nur.  All rights reserved.
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+#ifndef lm35_H
+#define lm35_H
+
+class lm35
+{
+  public:
+    lm35(int pin);
+    long TempInCelcius;
+    long TempInFahrenheit;
+    void MeasureTemp(void);
+  private:
+    int _pin, val, dat, fah;
+};
+#endif
